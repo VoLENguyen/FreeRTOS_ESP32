@@ -1,15 +1,16 @@
 #include <stdio.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/FreeRTOSConfig.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "sdkconfig.h"
 
-#define BTN_CONTROL 32
-#define BTN_0N 35
-#define BTN_OFF 34
-#define LED_BLINK 26
-#define LED 27
+#define BTN_CONTROL 35
+#define BTN_0N 32
+#define BTN_OFF 33
+#define LED_BLINK 25
+#define LED 26
 
 void Task1(void *pvParameters);
 void Task2(void *pvParameters);
@@ -19,7 +20,7 @@ TaskHandle_t xHandleTask1;
 TaskHandle_t xHandleTask2;
 TaskHandle_t xHandleTask3;
 
-uint8_t pre_state = 0;
+uint8_t LOCK = 0;
 
 void configGPIO(){
     //  Create variable config
@@ -27,7 +28,7 @@ void configGPIO(){
 
     // Config output
     GPIO_config.pin_bit_mask = ((1ULL << LED_BLINK) | (1ULL << LED));               /*!< GPIO pin: set with bit mask, each bit maps to a GPIO */                    
-    GPIO_config.mode = GPIO_MODE_OUTPUT;  // cheess độ đầu ra                                          /*!< GPIO mode: set input/output mode                     */
+    GPIO_config.mode = GPIO_MODE_OUTPUT;                                            /*!< GPIO mode: set input/output mode                     */
     GPIO_config.pull_up_en = GPIO_PULLUP_DISABLE;                                   /*!< GPIO pull-up                                         */
     GPIO_config.pull_down_en = GPIO_PULLDOWN_DISABLE;                               /*!< GPIO pull-down                                       */
     GPIO_config.intr_type = GPIO_INTR_DISABLE;                                      /*!< GPIO interrupt type                                  */
@@ -43,8 +44,8 @@ void app_main(void)
 {
     configGPIO();
 
-    xTaskCreate(Task1, "Task1", 1024, NULL, 6, &xHandleTask1);
-    xTaskCreate(Task2, "Task2", 1024, NULL, 7, &xHandleTask2);
+    xTaskCreate(Task1, "Task1", 1024, NULL, 5, &xHandleTask1);
+    xTaskCreate(Task2, "Task2", 1024, NULL, 5, &xHandleTask2);
     xTaskCreate(Task3, "Task3", 1024, NULL, 5, &xHandleTask3);
 }
 
@@ -52,15 +53,24 @@ void Task1( void * pvParameters )
 {
     for(;;)
     {
-        printf("Turning off the LED\n");
-        gpio_set_level(LED_BLINK, 0);// low led tắt 
+        while(LOCK == 1){
+            // vTaskDelay(10 / portTICK_PERIOD_MS);
+        };
+        // LOCK = 1;
+        // ENTER CRITICAL SECTION
+            // HANDLE
+        // EXIT CRITICAL SECTION
+        // LOCK = 0;
+        // NON CRITICAL SECTION
+        printf("Toggle the LED - off\n");
+        gpio_set_level(LED_BLINK, 0);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-        printf("Turning on the LED\n");
-        gpio_set_level(LED_BLINK, 1); // hig
+        printf("Toggle the LED - on\n");
+        gpio_set_level(LED_BLINK, 1);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
-// task2 //
+
 void Task2( void * pvParameters )
 {
     for(;;)
@@ -81,20 +91,19 @@ void Task2( void * pvParameters )
 
 void Task3( void * pvParameters )
 {
-    vTaskDelay(1000/portTICK_PERIOD_MS);
     for(;;)
     {
         if(gpio_get_level(BTN_CONTROL) == 1){
             while(gpio_get_level(BTN_CONTROL) == 1);
             printf("Control !!\n");
-            if(pre_state == 0){
-                pre_state = 1;
+            if(LOCK == 0){
+                LOCK = 1;
                 printf("Pause Task1 !\n");
-                vTaskSuspend(xHandleTask1); // vào trạng 
-            } else if(pre_state == 1){
-                pre_state = 0;
+                // vTaskSuspend(xHandleTask1);
+            } else if(LOCK == 1){
+                LOCK = 0;
                 printf("Run Task1 !\n");
-                vTaskResume(xHandleTask1);
+                // vTaskResume(xHandleTask1);
             } 
         }
         vTaskDelay(10 / portTICK_PERIOD_MS);
