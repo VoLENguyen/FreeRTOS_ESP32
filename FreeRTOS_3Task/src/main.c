@@ -43,8 +43,8 @@ void app_main(void)
 {
     configGPIO();
 
-    xTaskCreate(Task1, "Task1", 1024, NULL, 5, &xHandleTask1);
-    xTaskCreate(Task2, "Task2", 1024, NULL, 5, &xHandleTask2);
+    xTaskCreate(Task1, "Task1", 1024, NULL, 6, &xHandleTask1);
+    xTaskCreate(Task2, "Task2", 1024, NULL, 7, &xHandleTask2);
     xTaskCreate(Task3, "Task3", 1024, NULL, 5, &xHandleTask3);
 }
 
@@ -81,6 +81,7 @@ void Task2( void * pvParameters )
 
 void Task3( void * pvParameters )
 {
+    vTaskDelay(1000/portTICK_PERIOD_MS);
     for(;;)
     {
         if(gpio_get_level(BTN_CONTROL) == 1){
